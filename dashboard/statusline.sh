@@ -29,17 +29,27 @@ if [ -z "$DIST" ]; then
   exit 0
 fi
 
-# Patch only when the bundle changed since the last successful patch run.
-# One stat + one read per render, so this costs nothing on the hot path.
-sig() { printf '%s:%s' "$DIST" "$(stat -c '%Y:%s' "$DIST" 2>/dev/null)"; }
+# Patch only when the bundle OR the patch script changed since the last run.
+# Including apply.mjs means `git pull` of a fixed patch set takes effect without
+# touching anything by hand. Two stats + one small read per render, so this
+# costs nothing on the hot path.
+APPLY="$REPO_DIR/patches/apply.mjs"
+sig() {
+  printf '%s:%s:%s' "$DIST" \
+    "$(stat -c '%Y:%s' "$DIST" 2>/dev/null)" \
+    "$(stat -c '%Y:%s' "$APPLY" 2>/dev/null)"
+}
 
 if [ "$(cat "$STAMP" 2>/dev/null)" != "$(sig)" ]; then
-  if node "$REPO_DIR/patches/apply.mjs" "$DIST" >/dev/null 2>&1; then
+  if node "$APPLY" "$DIST" >/dev/null 2>&1; then
     mkdir -p "$(dirname "$STAMP")"
     sig > "$STAMP"
   fi
-  # On failure: no stamp written, so it retries next render. The unpatched
-  # bundle still runs below, so the statusline keeps working either way.
+  # apply.mjs exits 0 whenever the bundle is in its best achievable state,
+  # including when an anchor is gone. It only fails on unreadable/unwritable
+  # files, where retrying next render is the right move. Either way the bundle
+  # still runs below, so the statusline never goes blank.
+  # What happened last run: ~/.cache/claude-config/last-patch.log
 fi
 
 exec node "$DIST"
