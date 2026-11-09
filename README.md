@@ -31,27 +31,34 @@ Claude Code 상태창(statusline) 설정. 여러 기기·세션에서 같은 das
 **업스트림 + 직접 넣은 커스텀 패치 12개**의 결과이고, 그 전체 목록과 before/after는
 vault의 `04. Resources/tools/claude-dashboard-setup.md` 4-1 ~ 4-12에 있다.
 
-| 문서 | 내용 | 이 레포 `apply.mjs` |
+`dashboard/patches/anchors.mjs`가 그 12개를 전부 들고 있다 (+ 계정 위젯, 폴더 아이콘):
+
+| 문서 | 패치 이름 | 내용 |
 |---|---|---|
-| 4-1 | 막대 `▬`, 빈 칸 별도 색상 | ⚠️ 문자만 (`bar-style`) |
-| 4-2 | default 테마 `model`·`barEmpty` 색 | ❌ |
-| 4-3 | todayCost 라벨 → `🎧 Daily Usage` | ❌ |
-| 4-4 | context에 `Ctx` 라벨 + 빨간 막대 | ❌ |
-| 4-5 | rateLimit 막대·라벨 색, `📅 7days Usage` | ❌ |
-| 4-6 | 영어 라벨 `All`·`Sn` | ❌ |
-| 4-7 | model 위젯 effort 제거 (`🔥 Opus 5`) | ⚠️ 버전 표기만 (`model-version`) |
-| 4-8 | version 위젯 `Claude v~` + 주황 | ❌ |
-| 4-9 | configCounts 숫자 앞으로, MCP/Hooks 항상, MCP 수 디스크 캐시 | ❌ |
-| 4-9b | `isGitDirty` 타임아웃 1s → 300ms | ❌ |
-| 4-10 | 시간 포맷 `2h 5m` 띄어쓰기 | ❌ |
-| 4-11 | 구분선 색 `barEmpty` | ❌ |
-| 4-12 | `spacerAfterLine` 지원 추가 | ✅ (`spacer-after-line`) |
+| 4-1 | `bar-chars`, `bar-empty-color` | 막대 `▬` ×15, 빈 칸은 `barEmpty` 색으로 따로 |
+| 4-2 | `theme-model-color`, `theme-barempty-color` | default 테마 model 파스텔 주황, barEmpty 어두운 회색 |
+| 4-3 | `todaycost-label` | todayCost → `🎧 Daily Usage` |
+| 4-4 | `context-render` | `Ctx` 라벨 + 빨간 막대 + 토큰 패딩 |
+| 4-5 | `ratelimit-render`, `-5h-color`, `-7d-label`, `-7ds-color` | rateLimit을 라벨+막대로, `📅 7days Usage` |
+| 4-6 | `en-labels` | 영어 라벨 `All`·`Sn` |
+| 4-7 | `model-render` | `🔥` 아이콘, effort 배지 제거, 버전은 모델 id에서 정규식 |
+| 4-8 | `version-render` | `Claude v~` + model 색 |
+| 4-9 | `configcounts-render`, `countmcps-cache` | 숫자 앞으로·MCP/Hooks 항상, MCP 수는 디스크 캐시 + 백그라운드 갱신 |
+| 4-9b | `git-status-timeout` | `isGitDirty` 1s → 300ms |
+| 4-10 | `time-format-days`, `-hours` | 시간 포맷 `2h 5m` 띄어쓰기 |
+| 4-11 | `separator-color` | 구분선 `barEmpty` 색 |
+| 4-12 | `spacer-after-line` | `spacerAfterLine` 설정 지원 추가 |
+| 4-13 | `folder-icon` | 1.36.0이 `📁`에 붙인 U+FE0F 제거 |
+| new | `account-widget` | 로그인 계정 표시 |
 
-즉 `spacerAfterLine`은 **업스트림이 제거한 게 아니라 처음부터 커스텀 패치**였다.
-todayCost가 금액 대신 라벨만 띄우는 것도 업스트림 버그가 아니라 4-3의 의도된 변경이다.
+그래서 `spacerAfterLine`은 **업스트림이 제거한 게 아니라 처음부터 커스텀 패치**였고,
+todayCost가 금액 대신 라벨만 띄우는 것도 버그가 아니라 4-3의 의도된 변경이다.
 
-1.36.0에서도 4-1 ~ 4-12의 앵커는 전부 남아 있어 **이식은 가능하다.** 아직 안 한 상태라
-1.36.0은 막대·여백만 같고 라벨·색은 업스트림 모양으로 나온다.
+**검증:** 공개 1.36.0에 22개를 적용한 출력이 이 기기의 커스텀 1.25.1 출력과
+**ANSI 색상까지 포함해 바이트 단위로 완전히 동일**하다.
+
+> 앵커는 **1.36.0 기준**으로 썼다. 더 오래된 번들(공개 v1.25.1 등)은 소스 모양이 달라
+> 일부가 `~`로 빠지므로 모양이 부분만 복원된다. 앞으로 기준 버전은 1.36.0 이상이다.
 
 기반 플러그인은 [uppinote20/claude-dashboard](https://github.com/uppinote20/claude-dashboard).
 이 레포가 들고 있는 건 **내 레이아웃 + 업스트림에 없는 패치**다.
@@ -88,7 +95,8 @@ install.sh                              설치·갱신
 dashboard/
   claude-dashboard.local.json           레이아웃·테마·accountFormat
   statusline.sh                         settings.json이 호출하는 래퍼
-  patches/apply.mjs                     번들 패치 (멱등)
+  patches/anchors.mjs                   패치 정의 22개 (문서 4-1~4-13 + 계정 위젯)
+  patches/apply.mjs                     패치 실행기 (멱등, 패치별 독립)
 ```
 
 ## 패치와 래퍼가 필요한 이유
@@ -121,28 +129,15 @@ dashboard/
 > 1.36.0에서 업스트림이 모델 버전 버그를 고치자 **계정 위젯까지 같이 안 들어갔다.**
 > 그래서 패치를 독립 실행 + obsolete 개념으로 바꿨다.
 
-### 1. `model-version` (optional, 문서 4-7의 일부)
+### 패치 목록
 
-4-7이 model 위젯을 고쳐 쓸 때 버전을 `"4.6"`/`"4.5"`로 하드코딩해 둔 탓에 Opus 5가
-**Opus 4.6**으로 찍혔다. 모델 id에서 정규식으로 버전을 뽑도록 교체.
+전체 정의는 `dashboard/patches/anchors.mjs` 한 파일에 있다. 각 항목에 문서 번호(`doc`)와
+한 줄 설명(`note`)이 붙어 있어 `apply.mjs` 출력과 바로 대응된다. 새 패치를 넣을 때는
+`anchors.mjs`의 `patches` 배열에 추가하면 된다 — `apply.mjs`는 실행기일 뿐이다.
 
-이 앵커는 4-7이 적용된 번들에만 있다. 패치 안 된 업스트림(1.36.0 등)에는 없으므로
-`~`로 건너뛴다 — 대신 그 번들은 업스트림 표기(`◆ Opus 5(H)`)로 나온다.
+### `account` 위젯 (업스트림에 없음)
 
-### 1b. `bar-style` (optional, 문서 4-1의 일부)
-
-업스트림 기본 막대 `█`/`░` ×10을 `▬` ×15로 바꾼다. 4-1의 `renderProgressBar` 분리(빈 칸을
-`barEmpty` 색으로 따로 칠하는 부분)는 아직 이식하지 않았다.
-이미 패치된 번들에는 앵커가 없어 `~`로 건너뛴다.
-
-### 1c. `spacer-after-line` (optional, 문서 4-12)
-
-업스트림에는 `spacerAfterLine` 설정이 없다. `formatOutput`에 지원을 추가해
-`"spacerAfterLine": [1]` 이 먹게 한다. 이미 패치된 번들은 `~`로 건너뛴다.
-
-### 2. `account` 위젯
-
-업스트림에 없는 위젯. `~/.claude.json`의 `oauthAccount.emailAddress`를 읽어
+`~/.claude.json`의 `oauthAccount.emailAddress`를 읽어
 지금 로그인한 계정을 폴더·브랜치 옆에 띄운다. 계정이 여러 개일 때(개인 / 학교) 헷갈리지 않으려고 추가.
 
 - mtime 기준 캐시 — `~/.claude.json`이 120KB를 넘으므로 매 렌더 파싱을 피한다
