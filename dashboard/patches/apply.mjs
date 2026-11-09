@@ -44,6 +44,22 @@ const patches = [
     run: (s) => s.replace(HARDCODED_VERSION, DERIVED_VERSION),
   },
   {
+    name: "bar-style",
+    note: "keep the 1.25.1 progress bar: ▬ at width 15 instead of █/░ at 10",
+    optional: true, // only applies to bundles that ship the █/░ default
+    present: (s) => s.includes(BAR_WANTED),
+    anchored: (s) => s.includes(BAR_BLOCKY),
+    run: (s) => s.replace(BAR_BLOCKY, BAR_WANTED),
+  },
+  {
+    name: "spacer-after-line",
+    note: "restore the spacerAfterLine config key dropped in 1.36.0",
+    optional: true, // 1.25.x already supports it natively
+    present: (s) => s.includes("spacerAfterLine"),
+    anchored: (s) => s.includes(FORMAT_OUTPUT_PLAIN),
+    run: (s) => s.replace(FORMAT_OUTPUT_PLAIN, FORMAT_OUTPUT_SPACED),
+  },
+  {
     name: "account-widget",
     note: "show the logged-in Claude account next to folder/branch",
     optional: false,
@@ -65,6 +81,43 @@ const DERIVED_VERSION =
 
 const REGISTRY_ANCHOR = "var widgetRegistry = /* @__PURE__ */ new Map([";
 const ENTRY_ANCHOR = '  ["projectInfo", projectInfoWidget],';
+
+// 1.36.0 switched the default progress bar to block glyphs at width 10.
+const BAR_BLOCKY =
+  '  width: 10,\n' +
+  '  filledChar: "\\u2588",\n' +
+  '  // █ (full block)\n' +
+  '  emptyChar: "\\u2591"\n' +
+  '  // ░ (light shade)';
+
+const BAR_WANTED =
+  '  width: 15,\n' +
+  '  filledChar: "\\u25AC",\n' +
+  '  // ▬ (medium bar)\n' +
+  '  emptyChar: "\\u25AC"\n' +
+  '  // ▬ (medium bar)';
+
+// 1.36.0 dropped spacerAfterLine entirely, collapsing the blank line between
+// line groups. This restores the 1.25.1 implementation verbatim.
+const FORMAT_OUTPUT_PLAIN =
+  'async function formatOutput(ctx) {\n' +
+  '  const lines = await renderAllLines(ctx);\n' +
+  '  return lines.join("\\n");\n' +
+  '}';
+
+const FORMAT_OUTPUT_SPACED =
+  'async function formatOutput(ctx) {\n' +
+  '  const lines = await renderAllLines(ctx);\n' +
+  '  const spacerAfter = ctx.config.spacerAfterLine ?? [];\n' +
+  '  const result = [];\n' +
+  '  for (let i = 0; i < lines.length; i++) {\n' +
+  '    result.push(lines[i]);\n' +
+  '    if (spacerAfter.includes(i)) {\n' +
+  '      result.push("\\u200B");\n' +
+  '    }\n' +
+  '  }\n' +
+  '  return result.join("\\n");\n' +
+  '}';
 
 // Self-contained: resolves node builtins at call time and falls back to plain
 // text if the bundle's colorize/getTheme are not reachable under these names.
@@ -176,7 +229,7 @@ for (const p of patches) {
       report(`  = ${p.name}: already applied`);
     } else if (!p.anchored(out)) {
       if (p.optional) {
-        report(`  ~ ${p.name}: obsolete (anchor gone — upstream fixed it)`);
+        report(`  ~ ${p.name}: not applicable to this version (anchor absent)`);
       } else {
         report(`  ! ${p.name}: ANCHOR MISSING — patch needs updating for this version`);
         hardFailure = true;

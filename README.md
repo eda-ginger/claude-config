@@ -7,25 +7,37 @@ Claude Code 상태창(statusline) 설정. 여러 기기·세션에서 같은 das
 플러그인 1.25.1:
 
 ```
-🎲 Daily Usage │ Ctx ▬▬▬▬▬▬▬▬▬▬▬ 0% (0/200K) │ 5h ▬▬▬▬▬▬▬▬ 20% (2h 32m)
-📅 7days Usage │ All ▬▬▬▬▬▬▬▬▬▬▬ 76% (4h 12m)
+🎧 Daily Usage │ Ctx ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬   0% (0/200K)   │ 5h ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬  48% (2h 2m)
+📅 7days Usage │ All ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬  80% (3h 42m)
 
-🔥 Opus 5 │ Claude v2.1.0 │ 1 CLAUDE.md │ 4 MCP │ 0 Hooks
+🔥 Opus 5 │ Claude v2.1.318 │ 1 CLAUDE.md │ 4 MCP │ 0 Hooks
 📁 Life (main) │ 👤 rudwls2717@pusan.ac.kr
 ```
 
-플러그인 1.36.0 — **같은 설정인데 이름표·막대 모양이 다르다**:
+플러그인 1.36.0 (bar-style·spacer 패치 적용 후):
 
 ```
-💰️ Today: $42.08 │ ██░░░░░░░░ │ 18% │ 180K/1.0M │ 5h: 33% (2h13m)
-7d: 77% (3h53m)
-◆ Sonnet 5.5(M) │ v2.1.318 │ CLAUDE.md: 1, MCP: 4
-📁️ DDI-Negative (main) │ 👤 rudwls2717@pusan.ac.kr
+💰️ Today: $105.25 │ ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬ │ 0% │ 0/200K │ 5h: 48% (2h2m)
+7d: 80% (3h42m)
+
+◆ Opus 5(H) │ v2.1.318 │ CLAUDE.md: 1, MCP: 3
+📁️ Life (main) │ 👤 rudwls2717@pusan.ac.kr
 ```
 
-> 줄 구성(`lines`)은 두 버전이 똑같다. `🎲 Daily Usage` → `💰️ Today:`, `▬▬▬` → `░░░`,
-> 1·2줄 병합은 **업스트림 렌더링 변경**이지 설정이 깨진 게 아니다. 설정으로 되돌릴 수 없고,
-> 모양을 맞추려면 기기 간 플러그인 버전을 통일해야 한다.
+### 버전 간 모양 차이
+
+줄 구성(`lines`)은 두 버전이 똑같다. 다른 건 위젯 렌더링이고, 일부만 패치로 되돌릴 수 있다.
+
+| | 1.25.1 | 1.36.0 | 패치로 복원 |
+|---|---|---|---|
+| 막대 | `▬` ×15 | `█`/`░` ×10 | ✅ `bar-style` |
+| 줄 사이 빈 줄 | `spacerAfterLine` 지원 | 키 자체가 삭제됨 | ✅ `spacer-after-line` |
+| 비용 | `🎧 Daily Usage` | `💰️ Today: $105.25` | ❌ 복원 안 함 — 아래 참고 |
+| 모델·개수 표기 | `🔥 Opus 5` / `1 CLAUDE.md │ 4 MCP` | `◆ Opus 5(H)` / `CLAUDE.md: 1, MCP: 3` | ❌ 위젯 전면 재작성 필요 |
+
+> **1.25.1의 `todayCost`는 버그다.** `dailyTotal`을 계산한 뒤 숫자를 버리고 `🎧 Daily Usage`
+> 라벨만 출력한다(`t`를 destructure해놓고 쓰지도 않음). 즉 **1.25.1에서는 오늘 쓴 금액이 안 보인다.**
+> 1.36.0의 `💰️ Today: $105.25`가 그 수정판이므로, 이 부분은 의도적으로 되돌리지 않는다.
 
 기반 플러그인은 [uppinote20/claude-dashboard](https://github.com/uppinote20/claude-dashboard).
 이 레포가 들고 있는 건 **내 레이아웃 + 업스트림에 없는 패치**다.
@@ -100,7 +112,18 @@ dashboard/
 1.25.x 업스트림이 모델 버전을 `"4.6"`/`"4.5"`로 하드코딩해서 Opus 5가 **Opus 4.6**으로 찍혔다.
 모델 id에서 정규식으로 버전을 뽑도록 교체.
 
-**1.36.0에서 업스트림이 고쳤으므로 이 패치는 obsolete(`~`)로 건너뛴다.** 정상이다.
+**1.36.0에서 업스트림이 고쳤으므로 `~`로 건너뛴다.** 정상이다.
+
+### 1b. `bar-style` (optional)
+
+1.36.0이 기본 막대를 `█`/`░` ×10으로 바꿨다. 1.25.1의 `▬` ×15로 되돌린다.
+1.25.x에는 해당 앵커가 없어 `~`로 건너뛴다.
+
+### 1c. `spacer-after-line` (optional)
+
+1.36.0이 `spacerAfterLine` 설정을 통째로 제거해 줄 그룹 사이 빈 줄이 사라졌다.
+1.25.1의 `formatOutput` 구현을 그대로 되살려 `"spacerAfterLine": [1]` 이 다시 먹게 한다.
+1.25.x는 원래 지원하므로 `~`로 건너뛴다.
 
 ### 2. `account` 위젯
 
