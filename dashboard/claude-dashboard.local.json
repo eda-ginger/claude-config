@@ -1,0 +1,19 @@
+{
+  "language": "en",
+  "plan": "max",
+  "displayMode": "custom",
+  "lines": [
+    ["todayCost", "context", "rateLimit5h"],
+    ["rateLimit7d", "rateLimit7dSonnet"],
+    ["model", "version", "configCounts"],
+    ["projectInfo", "account"],
+    ["outputStyle"]
+  ],
+  "spacerAfterLine": [1],
+  "theme": "default",
+  "separator": "pipe",
+  "cache": {
+    "ttlSeconds": 300
+  },
+  "accountFormat": "email"
+}
